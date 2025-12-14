@@ -20,12 +20,10 @@ jobs:
           java-version: 21
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v2
+        uses: android-actions/setup-sdk@v2
         with:
-          api-level: 34
-          build-tools: 34.0.0
-          ndk: 25.2.9519653
-          cmake: 3.25.2
+          sdk: "android-34"
+          build-tools: "34.0.0"
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
