@@ -1,51 +1,66 @@
-name: Build APK and Release
+name: Build APK and Update Latest Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, master ]
+    tags:
+      - 'v*'  # v1.0.0 gibi tag'ler için
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-sdk@v2
-        with:
-          sdk: "android-34"
-          build-tools: "34.0.0"
-
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: latest
-          release_name: Latest APK
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APK
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/release/app-release.apk
-          asset_name: Alphagame-latest.apk
-          asset_content_type: application/vnd.android.package-archive
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Run gradlew
+      run: chmod +x ./gradlew && ./gradlew assembleDebug
+      
+    - name: Get version info
+      id: get_version
+      run: |
+        # Eğer tag varsa onu kullan, yoksa build.gradle'dan al
+        if [ -n "${{ github.ref_name }}" ] && [[ "${{ github.ref_name }}" == v* ]]; then
+          VERSION="${GITHUB_REF#refs/tags/v}"
+        else
+          VERSION=$(grep "versionName" app/build.gradle | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "1.0.0")
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        
+    - name: Upload APK to Release
+      id: upload-release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: "v${{ env.VERSION }}"
+        name: "v${{ env.VERSION }}"
+        body: |
+          ## APK Download
+          
+          **Version:** ${{ env.VERSION }}
+          **Build Date:** $(date +'%Y-%m-%d %H:%M:%S')
+          **Commit:** [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          
+          ### Installation
+          1. Download the APK file below
+          2. Enable "Unknown Sources" in Android settings
+          3. Install and enjoy!
+        files: app/build/outputs/apk/debug/app-debug.apk
+        draft: false
+        prerelease: false
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
