@@ -38,21 +38,10 @@ window.addEventListener('load', function() {
     // Kamera
     let cameraX = 0;
 
-    // Kontrol Değişkenleri
-    let rightPressed = false;
-    let leftPressed = false;
-
     // Buton Referansları
-    const leftBtn = document.getElementById('left-btn');
-    const rightBtn = document.getElementById('right-btn');
     const jumpBtn = document.getElementById('jump-btn');
 
-    // Fare ve Dokunmatik Olayları
-    function handleStartLeft() { leftPressed = true; }
-    function handleEndLeft() { leftPressed = false; }
-    function handleStartRight() { rightPressed = true; }
-    function handleEndRight() { rightPressed = false; }
-    
+    // Zıplama Fonksiyonu
     function handleJump() {
         if (!player.isJumping) {
             player.velocityY = -player.jumpForce;
@@ -60,18 +49,6 @@ window.addEventListener('load', function() {
         }
     }
 
-    // Sol Buton
-    leftBtn.addEventListener('mousedown', handleStartLeft);
-    leftBtn.addEventListener('mouseup', handleEndLeft);
-    leftBtn.addEventListener('touchstart', handleStartLeft, { passive: true });
-    leftBtn.addEventListener('touchend', handleEndLeft);
-
-    // Sağ Buton
-    rightBtn.addEventListener('mousedown', handleStartRight);
-    rightBtn.addEventListener('mouseup', handleEndRight);
-    rightBtn.addEventListener('touchstart', handleStartRight, { passive: true });
-    rightBtn.addEventListener('touchend', handleEndRight);
-    
     // Zıplama Butonu
     jumpBtn.addEventListener('click', handleJump);
     jumpBtn.addEventListener('touchstart', (e) => {
@@ -135,15 +112,8 @@ window.addEventListener('load', function() {
             }
         }
 
-        // Kontrollere göre hızı ayarla
-        if (rightPressed) {
-            player.velocityX = player.speed;
-        } else if (leftPressed) {
-            // Geriye gitmeyi engelle
-            player.velocityX = Math.max(-player.speed, 0);
-        } else {
-            player.velocityX = 0;
-        }
+        // Oyuncuya sürekli ileri doğru bir hız ver
+        player.velocityX = player.speed;
 
         // Yerçekimini uygula
         player.velocityY += gravity;

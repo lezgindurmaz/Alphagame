@@ -21,14 +21,12 @@ body, html {
 #controls {
     position: absolute;
     bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 20px; /* Sol alt köşe için */
     z-index: 10;
 }
 
 button {
     padding: 15px 30px;
     font-size: 18px;
-    margin: 0 10px;
     cursor: pointer;
 }

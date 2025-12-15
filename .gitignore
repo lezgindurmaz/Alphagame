@@ -1,3 +1,4 @@
 node_modules/
 android_sdk/
 *.keystore
+keystore.properties
