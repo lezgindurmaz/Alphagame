@@ -22,19 +22,18 @@ window.addEventListener('load', function() {
     // Fizik Ayarları
     const gravity = 0.8;
 
-    // Platformlar
-    const platforms = [
-        // Başlangıç zemini
-        { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }
-    ];
+    // Zemin Ayarları
+    const groundHeight = 50;
+    const groundY = canvas.height - groundHeight;
 
-    // Platform Üretim Ayarları
-    let lastPlatformX = canvas.width;
-    const minPlatformWidth = player.width * 1.5;
-    const maxPlatformWidth = player.width * 4;
-    const minGap = player.width * 2;
-    const maxGap = player.width * 5;
-    const platformHeight = 20;
+    // Engel Ayarları
+    const obstacles = [];
+    let lastObstacleX = 400; // İlk engelin başlayacağı yer
+    const minObstacleGap = 200;
+    const maxObstacleGap = 500;
+    const minObstacleWidth = 30;
+    const maxObstacleWidth = 80;
+    const obstacleHeight = 40;
 
     // Kamera
     let cameraX = 0;
@@ -94,47 +93,54 @@ window.addEventListener('load', function() {
         ctx.save();
         ctx.translate(-cameraX, 0);
 
-        // Platformları çiz
+        // Sonsuz zemini çiz
         ctx.fillStyle = '#228B22'; // Yeşil renk
-        platforms.forEach(platform => {
-            ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+        // Ekranda görünecek kısmın biraz fazlasını çizerek boşluk oluşmasını engelle
+        ctx.fillRect(cameraX - 50, groundY, canvas.width + 100, groundHeight);
+
+        // Engelleri çiz
+        ctx.fillStyle = '#C2B280'; // Kum rengi
+        obstacles.forEach(obstacle => {
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
         });
 
-        // NOT: Oyuncu çizilmiyor, çünkü görünmez olacak.
+        // Oyuncuyu çiz (artık görünür)
+        ctx.fillStyle = 'red';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
 
         // Kamera dönüşümünü geri al
         ctx.restore();
     }
 
-    function generatePlatforms() {
-        // Oyuncunun ilerlediği mesafeye göre yeni platformlar üret
-        while (lastPlatformX < player.x + canvas.width) {
-            const width = Math.random() * (maxPlatformWidth - minPlatformWidth) + minPlatformWidth;
-            const gap = Math.random() * (maxGap - minGap) + minGap;
-            const x = lastPlatformX + gap;
+    function generateObstacles() {
+        // Oyuncunun ilerlediği mesafeye göre yeni engeller üret
+        while (lastObstacleX < player.x + canvas.width) {
+            const gap = Math.random() * (maxObstacleGap - minObstacleGap) + minObstacleGap;
+            const width = Math.random() * (maxObstacleWidth - minObstacleWidth) + minObstacleWidth;
+            const x = lastObstacleX + gap;
+            const y = groundY - obstacleHeight; // Engeller zeminin üstünde olacak
 
-            // Platformun yüksekliğini rastgele belirle, ancak bir önceki platforma çok uzak olmasın
-            const lastPlatform = platforms[platforms.length - 1];
-            const maxJumpHeight = 150; // Zıplama yüksekliğine göre ayarlanabilir
-            const minY = Math.max(lastPlatform.y - maxJumpHeight, 100);
-            const maxY = Math.min(lastPlatform.y + maxJumpHeight, canvas.height - 80);
-            const y = Math.random() * (maxY - minY) + minY;
-
-            platforms.push({ x, y, width, height: platformHeight });
-            lastPlatformX = x + width;
+            obstacles.push({ x, y, width, height: obstacleHeight });
+            lastObstacleX = x + width;
         }
     }
 
     function update() {
-        generatePlatforms();
+        generateObstacles();
 
-        // Ekran dışına çıkan eski platformları sil
-        platforms = platforms.filter(p => p.x + p.width > cameraX);
+        // Ekran dışına çıkan eski engelleri sil
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            if (obstacles[i].x + obstacles[i].width < cameraX) {
+                obstacles.splice(i, 1);
+            }
+        }
+
         // Kontrollere göre hızı ayarla
         if (rightPressed) {
             player.velocityX = player.speed;
         } else if (leftPressed) {
-            player.velocityX = -player.speed;
+            // Geriye gitmeyi engelle
+            player.velocityX = Math.max(-player.speed, 0);
         } else {
             player.velocityX = 0;
         }
@@ -146,40 +152,51 @@ window.addEventListener('load', function() {
         player.x += player.velocityX;
         player.y += player.velocityY;
 
-        // Platformlarla çarpışma kontrolü
-        let onGround = false;
-        for (const platform of platforms) {
-            if (
-                player.x < platform.x + platform.width &&
-                player.x + player.width > platform.x &&
-                player.y + player.height > platform.y &&
-                player.y + player.height < platform.y + platform.height &&
-                player.velocityY >= 0
-            ) {
-                // Oyuncuyu platformun üstüne yerleştir ve zıplama durumunu sıfırla
-                player.y = platform.y - player.height;
-                player.velocityY = 0;
-                onGround = true;
-                break; // Zemin bulundu, diğer platformları kontrol etmeye gerek yok
-            }
+        // Zeminle çarpışma kontrolü
+        if (player.y + player.height > groundY) {
+            player.y = groundY - player.height;
+            player.velocityY = 0;
+            player.isJumping = false;
         }
 
-        player.isJumping = !onGround;
+        // Engellerle çarpışma kontrolü
+        obstacles.forEach(obstacle => {
+            // Yatay çarpışma
+            if (
+                player.x < obstacle.x + obstacle.width &&
+                player.x + player.width > obstacle.x
+            ) {
+                // Dikey çarpışma (engel üstünde durma)
+                if (
+                    player.y + player.height > obstacle.y &&
+                    player.y < obstacle.y &&
+                    player.velocityY >= 0
+                ) {
+                    player.y = obstacle.y - player.height;
+                    player.velocityY = 0;
+                    player.isJumping = false;
+                }
+                // Yanlardan çarpışma
+                else if (player.y + player.height > obstacle.y) {
+                     // Oyunu sıfırla
+                    resetGame();
+                }
+            }
+        });
 
         // Oyuncu ekranın altından düşerse oyunu yeniden başlat
         if (player.y > canvas.height) {
-            // Oyuncuyu başlangıç pozisyonuna geri getir
-            player.x = 100;
-            player.y = canvas.height / 2; // Ortada bir yere
-            player.velocityX = 0;
-            player.velocityY = 0;
-
-            // Platformları sıfırla
-            platforms = [
-                { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }
-            ];
-            lastPlatformX = canvas.width;
+            resetGame();
         }
+    }
+
+    function resetGame() {
+        player.x = 100;
+        player.y = groundY - player.height - 100; // Zeminin biraz üstünde başla
+        player.velocityX = 0;
+        player.velocityY = 0;
+        obstacles.length = 0; // Tüm engelleri temizle
+        lastObstacleX = 400;
     }
 
     function gameLoop() {
