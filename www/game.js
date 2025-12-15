@@ -22,17 +22,19 @@ window.addEventListener('load', function() {
     // Fizik Ayarları
     const gravity = 0.8;
 
-    // Platformlar (daha geniş bir dünya için)
+    // Platformlar
     const platforms = [
-        // Zemin
-        { x: 0, y: canvas.height - 20, width: 3000, height: 20 },
-        // Diğer platformlar
-        { x: 200, y: canvas.height - 120, width: 150, height: 20 },
-        { x: 500, y: canvas.height - 220, width: 150, height: 20 },
-        { x: 800, y: canvas.height - 320, width: 150, height: 20 },
-        { x: 1200, y: canvas.height - 150, width: 200, height: 20 },
-        { x: 1600, y: canvas.height - 250, width: 100, height: 20 }
+        // Başlangıç zemini
+        { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }
     ];
+
+    // Platform Üretim Ayarları
+    let lastPlatformX = canvas.width;
+    const minPlatformWidth = player.width * 1.5;
+    const maxPlatformWidth = player.width * 4;
+    const minGap = player.width * 2;
+    const maxGap = player.width * 5;
+    const platformHeight = 20;
 
     // Kamera
     let cameraX = 0;
@@ -104,7 +106,30 @@ window.addEventListener('load', function() {
         ctx.restore();
     }
 
+    function generatePlatforms() {
+        // Oyuncunun ilerlediği mesafeye göre yeni platformlar üret
+        while (lastPlatformX < player.x + canvas.width) {
+            const width = Math.random() * (maxPlatformWidth - minPlatformWidth) + minPlatformWidth;
+            const gap = Math.random() * (maxGap - minGap) + minGap;
+            const x = lastPlatformX + gap;
+
+            // Platformun yüksekliğini rastgele belirle, ancak bir önceki platforma çok uzak olmasın
+            const lastPlatform = platforms[platforms.length - 1];
+            const maxJumpHeight = 150; // Zıplama yüksekliğine göre ayarlanabilir
+            const minY = Math.max(lastPlatform.y - maxJumpHeight, 100);
+            const maxY = Math.min(lastPlatform.y + maxJumpHeight, canvas.height - 80);
+            const y = Math.random() * (maxY - minY) + minY;
+
+            platforms.push({ x, y, width, height: platformHeight });
+            lastPlatformX = x + width;
+        }
+    }
+
     function update() {
+        generatePlatforms();
+
+        // Ekran dışına çıkan eski platformları sil
+        platforms = platforms.filter(p => p.x + p.width > cameraX);
         // Kontrollere göre hızı ayarla
         if (rightPressed) {
             player.velocityX = player.speed;
@@ -122,26 +147,38 @@ window.addEventListener('load', function() {
         player.y += player.velocityY;
 
         // Platformlarla çarpışma kontrolü
-        player.isJumping = true; // Her döngüde zıplıyor varsay, platforma değerse false olacak
-        platforms.forEach(platform => {
+        let onGround = false;
+        for (const platform of platforms) {
             if (
                 player.x < platform.x + platform.width &&
                 player.x + player.width > platform.x &&
-                player.y < platform.y + platform.height &&
                 player.y + player.height > platform.y &&
-                player.velocityY >= 0 // Sadece aşağı düşerken çarpışmayı kontrol et
+                player.y + player.height < platform.y + platform.height &&
+                player.velocityY >= 0
             ) {
-                // Oyuncuyu platformun üstüne yerleştir
+                // Oyuncuyu platformun üstüne yerleştir ve zıplama durumunu sıfırla
                 player.y = platform.y - player.height;
                 player.velocityY = 0;
-                player.isJumping = false;
+                onGround = true;
+                break; // Zemin bulundu, diğer platformları kontrol etmeye gerek yok
             }
-        });
+        }
 
-        // Oyuncunun ekranın altından düşmesini engelle (geçici)
+        player.isJumping = !onGround;
+
+        // Oyuncu ekranın altından düşerse oyunu yeniden başlat
         if (player.y > canvas.height) {
-            player.y = canvas.height - 100;
+            // Oyuncuyu başlangıç pozisyonuna geri getir
             player.x = 100;
+            player.y = canvas.height / 2; // Ortada bir yere
+            player.velocityX = 0;
+            player.velocityY = 0;
+
+            // Platformları sıfırla
+            platforms = [
+                { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }
+            ];
+            lastPlatformX = canvas.width;
         }
     }
 
