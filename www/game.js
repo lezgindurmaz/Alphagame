@@ -38,8 +38,10 @@ window.addEventListener('load', function() {
     // Kamera
     let cameraX = 0;
 
-    // Buton Referansları
-    const jumpBtn = document.getElementById('jump-btn');
+    // Skor
+    let score = 0;
+    const scoreElement = document.getElementById('score');
+
 
     // Zıplama Fonksiyonu
     function handleJump() {
@@ -49,10 +51,10 @@ window.addEventListener('load', function() {
         }
     }
 
-    // Zıplama Butonu
-    jumpBtn.addEventListener('click', handleJump);
-    jumpBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Click olayının tekrar tetiklenmesini engelle
+    // Tam ekran dokunma/tıklama ile zıplama
+    window.addEventListener('click', handleJump);
+    window.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Dokunmatik cihazlarda varsayılan eylemleri engelle
         handleJump();
     });
 
@@ -158,9 +160,15 @@ window.addEventListener('load', function() {
         if (player.y > canvas.height) {
             resetGame();
         }
+
+        // Skoru güncelle (mesafeye göre)
+        score = Math.floor(player.x / 10);
+        scoreElement.textContent = 'SCORE: ' + score;
     }
 
     function resetGame() {
+        score = 0;
+        scoreElement.textContent = 'SCORE: 0';
         player.x = 100;
         player.y = groundY - player.height - 100; // Zeminin biraz üstünde başla
         player.velocityX = 0;
