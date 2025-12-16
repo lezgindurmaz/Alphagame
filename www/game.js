@@ -6,24 +6,30 @@ window.addEventListener('load', function() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    // Dinamik oyun ayarları (ekran boyutuna göre)
+    const playerSize = canvas.height * 0.1; // Oyuncu boyutu ekran yüksekliğinin %10'u
+    const groundHeight = canvas.height * 0.12; // Zemin yüksekliği
+    const jumpForceValue = canvas.height * 0.035; // Zıplama gücü
+    const gravityValue = canvas.height * 0.0015; // Yerçekimi
+    const obstacleHeightValue = playerSize; // Engel yüksekliği oyuncuyla aynı
+
     // Oyuncu Ayarları
     const player = {
         x: 100,
-        y: canvas.height - 100,
-        width: 40,
-        height: 40,
+        y: canvas.height - groundHeight - playerSize,
+        width: playerSize,
+        height: playerSize,
         velocityX: 0,
         velocityY: 0,
         speed: 5,
-        jumpForce: 15,
+        jumpForce: jumpForceValue,
         isJumping: false
     };
 
     // Fizik Ayarları
-    const gravity = 0.8;
+    const gravity = gravityValue;
 
     // Zemin Ayarları
-    const groundHeight = 50;
     const groundY = canvas.height - groundHeight;
 
     // Engel Ayarları
@@ -33,7 +39,7 @@ window.addEventListener('load', function() {
     const maxObstacleGap = 500;
     const minObstacleWidth = 30;
     const maxObstacleWidth = 80;
-    const obstacleHeight = 40;
+    const obstacleHeight = obstacleHeightValue;
 
     // Kamera
     let cameraX = 0;
@@ -44,10 +50,36 @@ window.addEventListener('load', function() {
     const scoreElement = document.getElementById('score');
     const highScoreElement = document.getElementById('highscore');
 
+    // Ses Ayarları (Web Audio API)
+    let audioCtx;
+    function setupAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playBeep() {
+        if (!audioCtx) return;
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4 nota
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Düşük ses seviyesi
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1); // 0.1 saniye sonra dur
+    }
+
 
     // Zıplama Fonksiyonu
     function handleJump() {
         if (!player.isJumping) {
+            setupAudio(); // Ses context'ini kullanıcı etkileşimiyle başlat
+            playBeep();
             player.velocityY = -player.jumpForce;
             player.isJumping = true;
         }
@@ -164,8 +196,18 @@ window.addEventListener('load', function() {
         }
 
         // Skoru güncelle (mesafeye göre)
+        const oldScore = score;
         score = Math.floor(player.x / 10);
         scoreElement.textContent = 'SCORE: ' + score;
+
+        // Hız artışı kontrolü
+        // Skor 300'ün katına ulaştığında ve hız limitten düşükse hızı artır
+        const scoreTier = Math.floor(score / 300);
+        const oldScoreTier = Math.floor(oldScore / 300);
+
+        if (scoreTier > oldScoreTier && player.speed < 10) {
+            player.speed += 1;
+        }
     }
 
     function resetGame() {
@@ -175,6 +217,7 @@ window.addEventListener('load', function() {
         }
         score = 0;
         scoreElement.textContent = 'SCORE: 0';
+        player.speed = 5; // Hızı başlangıç değerine sıfırla
         player.x = 100;
         player.y = groundY - player.height - 100; // Zeminin biraz üstünde başla
         player.velocityX = 0;
