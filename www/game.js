@@ -40,7 +40,9 @@ window.addEventListener('load', function() {
 
     // Skor
     let score = 0;
+    let highScore = 0;
     const scoreElement = document.getElementById('score');
+    const highScoreElement = document.getElementById('highscore');
 
 
     // Zıplama Fonksiyonu
@@ -167,6 +169,10 @@ window.addEventListener('load', function() {
     }
 
     function resetGame() {
+        if (score > highScore) {
+            highScore = score;
+            highScoreElement.textContent = 'HIGHSCORE: ' + highScore;
+        }
         score = 0;
         scoreElement.textContent = 'SCORE: 0';
         player.x = 100;
