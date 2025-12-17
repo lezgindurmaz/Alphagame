@@ -6,11 +6,12 @@ window.addEventListener('load', function() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Dinamik oyun ayarları (ekran boyutuna göre)
-    const playerSize = canvas.height * 0.1; // Oyuncu boyutu ekran yüksekliğinin %10'u
-    const groundHeight = canvas.height * 0.12; // Zemin yüksekliği
-    const jumpForceValue = canvas.height * 0.035; // Zıplama gücü
-    const gravityValue = canvas.height * 0.0015; // Yerçekimi
+    // Dinamik oyun ayarları (ekranın en küçük kenarına göre)
+    const smallerDimension = Math.min(canvas.width, canvas.height);
+    const playerSize = smallerDimension * 0.1; // Oyuncu boyutu en küçük kenarın %10'u
+    const groundHeight = smallerDimension * 0.12; // Zemin yüksekliği
+    const jumpForceValue = smallerDimension * 0.035; // Zıplama gücü
+    const gravityValue = smallerDimension * 0.0015; // Yerçekimi
     const obstacleHeightValue = playerSize; // Engel yüksekliği oyuncuyla aynı
 
     // Oyuncu Ayarları
@@ -49,6 +50,7 @@ window.addEventListener('load', function() {
     let highScore = 0;
     const scoreElement = document.getElementById('score');
     const highScoreElement = document.getElementById('highscore');
+    const backgroundMusic = document.getElementById('background-music');
 
     // Ses Ayarları (Web Audio API)
     let audioCtx;
@@ -79,11 +81,28 @@ window.addEventListener('load', function() {
     function handleJump() {
         if (!player.isJumping) {
             setupAudio(); // Ses context'ini kullanıcı etkileşimiyle başlat
+
+            // Müziği ilk kullanıcı etkileşiminde başlat
+            if (backgroundMusic.paused) {
+                backgroundMusic.play().catch(e => console.error("Müzik çalınamadı:", e));
+            }
+
             playBeep();
             player.velocityY = -player.jumpForce;
             player.isJumping = true;
         }
     }
+
+    // Sayfa görünürlüğü değiştiğinde müziği yönet
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            backgroundMusic.pause();
+        } else {
+            if (!backgroundMusic.paused) {
+                 backgroundMusic.play().catch(e => console.error("Müzik devam ettirilemedi:", e));
+            }
+        }
+    });
 
     // Tam ekran dokunma/tıklama ile zıplama
     window.addEventListener('click', handleJump);
