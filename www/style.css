@@ -1,13 +1,122 @@
+/* General Body Styles */
 body, html {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    width: 100%;
+    height: 100%;
+    font-family: 'Arial', sans-serif;
+    background-color: #87CEEB; /* Light sky blue background */
+    color: #fff;
 }
 
-#game-container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+/* Screen container styles */
+.screen {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.screen.active {
+    display: flex; /* Show the active screen */
+}
+
+/* Title Styles */
+.title {
+    font-size: 3em;
+    margin-bottom: 0.2em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.version {
+    font-size: 1em;
+    margin-bottom: 2em;
+    opacity: 0.8;
+}
+
+/* Button Styles */
+.menu-btn {
+    padding: 15px 30px;
+    font-size: 1.2em;
+    cursor: pointer;
+    background-color: #FF6347; /* Tomato */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    margin-top: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+
+.menu-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Icon Button Styles */
+.settings-icon, .back-icon {
+    position: absolute;
+    font-size: 2em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.settings-icon {
+    top: 20px;
+    right: 20px;
+}
+
+.back-icon {
+    top: 20px;
+    left: 20px;
+}
+
+/* Settings Menu Specifics */
+#settings-menu {
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 80%;
+    max-width: 300px;
+    margin: 10px 0;
+    font-size: 1.2em;
+}
+
+.toggle-btn {
+    padding: 10px 20px;
+    width: 80px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.toggle-btn[data-setting-value="true"] {
+    background-color: #32CD32; /* LimeGreen */
+    color: white;
+}
+
+.toggle-btn[data-setting-value="false"] {
+    background-color: #FF6347; /* Tomato */
+    color: white;
+}
+
+
+/* Game Screen Styles */
+#game-screen {
+    background: none; /* It will show the body background */
 }
 
 #gameCanvas {
@@ -18,19 +127,27 @@ body, html {
     height: 100%;
 }
 
-/* #controls and button styles removed as they are no longer used. */
-
 #score-container {
     position: absolute;
     top: 20px;
     left: 20px;
     z-index: 10;
-    font-family: 'Arial', sans-serif;
     font-weight: bold;
     color: #000;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
 }
 
 #score, #highscore {
-    font-size: 24px;
-    margin-bottom: 5px; /* Add some space between the scores */
+    font-size: 1.5em; /* Responsive font size */
+    margin-bottom: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .title {
+        font-size: 2.5em;
+    }
+    #score, #highscore {
+        font-size: 1.2em;
+    }
 }
