@@ -81,7 +81,7 @@ body, html {
 
 /* Settings Menu Specifics */
 #settings-menu {
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .setting-item {
@@ -104,19 +104,18 @@ body, html {
 }
 
 .toggle-btn[data-setting-value="true"] {
-    background-color: #32CD32; /* LimeGreen */
+    background-color: #32CD32;
     color: white;
 }
 
 .toggle-btn[data-setting-value="false"] {
-    background-color: #FF6347; /* Tomato */
+    background-color: #FF6347;
     color: white;
 }
 
-
 /* Game Screen Styles */
 #game-screen {
-    background: none; /* It will show the body background */
+    background: none;
 }
 
 #gameCanvas {
@@ -138,8 +137,50 @@ body, html {
 }
 
 #score, #highscore {
-    font-size: 1.5em; /* Responsive font size */
+    font-size: 1.5em;
     margin-bottom: 5px;
+}
+
+/* Update Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: #fff;
+    color: #333;
+    padding: 20px 40px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Responsive adjustments */
