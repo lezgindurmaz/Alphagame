@@ -7,14 +7,56 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen active">
+        <h1 class="title">Invisible Player</h1>
+        <p class="version">v5.0</p>
+        <button id="start-game-btn" class="menu-btn">Start Game</button>
+        <button id="settings-btn-main" class="settings-icon">⚙️</button>
+    </div>
+
+    <!-- Settings Menu -->
+    <div id="settings-menu" class="screen">
+        <h2 class="title">Settings</h2>
+        <div class="setting-item">
+            <label for="music-toggle">Background Music</label>
+            <button id="music-toggle" class="toggle-btn" data-setting="music">ON</button>
+        </div>
+        <div class="setting-item">
+            <label for="sfx-toggle">Sound Effects</label>
+            <button id="sfx-toggle" class="toggle-btn" data-setting="sfx">ON</button>
+        </div>
+        <button id="check-updates-btn" class="menu-btn">Check for Updates</button>
+        <button id="back-btn" class="back-icon">⬅️</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div id="score-container">
+            <div id="score">SCORE: 0</div>
+            <div id="highscore">HIGHSCORE: 0</div>
+        </div>
         <canvas id="gameCanvas"></canvas>
-        <div id="controls">
-            <button id="left-btn">Left</button>
-            <button id="right-btn">Right</button>
-            <button id="jump-btn">Jump</button>
+    </div>
+
+    <!-- Update Progress Modal -->
+    <div id="update-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="update-title">Checking for Updates...</h3>
+            <div id="update-body">
+                <p id="update-message">Please wait.</p>
+                <div class="spinner"></div>
+                <pre id="update-notes" class="release-notes"></pre>
+            </div>
+            <div id="update-actions">
+                <button id="update-download-btn" class="menu-btn" style="display: none;">Download</button>
+                <button id="update-cancel-btn" class="menu-btn cancel" style="display: none;">Cancel</button>
+            </div>
         </div>
     </div>
+
+    <audio id="background-music" src="background_music.mp3" loop></audio>
     <script src="game.js"></script>
 </body>
 </html>

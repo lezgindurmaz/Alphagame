@@ -27,13 +27,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const updateModal = document.getElementById('update-modal');
     const updateTitle = document.getElementById('update-title');
     const updateMessage = document.getElementById('update-message');
+    const updateNotes = document.getElementById('update-notes');
     const updateSpinner = document.querySelector('.spinner');
-    const updateCloseBtn = document.getElementById('update-close-btn');
+    const updateActions = document.getElementById('update-actions');
+    const updateDownloadBtn = document.getElementById('update-download-btn');
+    const updateCancelBtn = document.getElementById('update-cancel-btn');
 
 
     // --- Game State & Settings ---
-    const CURRENT_VERSION = "4.0"; // Current app version for v4.0
+    const CURRENT_VERSION = "5.0"; // Current app version for v5.0
     let gameLoopId;
+    let latestReleaseInfo = {}; // To store download URL and filename
     let settings = {
         music: true,
         sfx: true
@@ -41,18 +45,12 @@ document.addEventListener('DOMContentLoaded', function() {
     versionElement.textContent = `v${CURRENT_VERSION}`;
 
     // --- Settings Management (localStorage) ---
-    function saveSettings() {
-        localStorage.setItem('gameSettings', JSON.stringify(settings));
-    }
-
+    function saveSettings() { localStorage.setItem('gameSettings', JSON.stringify(settings)); }
     function loadSettings() {
         const savedSettings = localStorage.getItem('gameSettings');
-        if (savedSettings) {
-            settings = JSON.parse(savedSettings);
-        }
+        if (savedSettings) settings = JSON.parse(savedSettings);
         updateSettingsUI();
     }
-
     function updateSettingsUI() {
         musicToggleBtn.textContent = settings.music ? 'ON' : 'OFF';
         musicToggleBtn.setAttribute('data-setting-value', settings.music);
@@ -62,105 +60,153 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Screen Navigation ---
-    function showScreen(screenElement) {
+    function showScreen(screenEl) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        screenElement.classList.add('active');
+        screenEl.classList.add('active');
     }
 
     // --- Update Modal Logic ---
-    function showUpdateModal(title, message, showSpinner = true, showClose = false) {
-        updateTitle.textContent = title;
-        updateMessage.textContent = message;
-        updateSpinner.style.display = showSpinner ? 'block' : 'none';
-        updateCloseBtn.style.display = showClose ? 'block' : 'none';
+    function showUpdateModal(state, data = {}) {
+        // Reset modal state
+        updateSpinner.style.display = 'none';
+        updateNotes.style.display = 'none';
+        updateDownloadBtn.style.display = 'none';
+        updateCancelBtn.style.display = 'none';
+        updateMessage.style.display = 'block';
+
+        switch (state) {
+            case 'checking':
+                updateTitle.textContent = 'Checking for Updates...';
+                updateMessage.textContent = 'Please wait.';
+                updateSpinner.style.display = 'block';
+                updateCancelBtn.textContent = 'Cancel';
+                updateCancelBtn.style.display = 'block';
+                break;
+            case 'no_connection':
+                updateTitle.textContent = 'Error';
+                updateMessage.textContent = 'No Network Connection.';
+                updateCancelBtn.textContent = 'Close';
+                updateCancelBtn.style.display = 'block';
+                break;
+            case 'up_to_date':
+                updateTitle.textContent = 'No Updates';
+                updateMessage.textContent = 'This version is already the latest.';
+                updateCancelBtn.textContent = 'Close';
+                updateCancelBtn.style.display = 'block';
+                break;
+            case 'found':
+                updateTitle.textContent = `New Version Available! (v${data.version})`;
+                updateMessage.style.display = 'none';
+                updateNotes.textContent = data.notes || 'No release notes available.';
+                updateNotes.style.display = 'block';
+                updateDownloadBtn.style.display = 'block';
+                updateCancelBtn.textContent = 'Cancel';
+                updateCancelBtn.style.display = 'block';
+                break;
+            case 'downloading':
+                updateTitle.textContent = 'Downloading Update...';
+                updateMessage.textContent = 'Please wait, this may take a moment.';
+                updateSpinner.style.display = 'block';
+                break;
+            case 'complete':
+                updateTitle.textContent = 'Download Complete!';
+                updateMessage.textContent = 'Opening installer...';
+                break;
+            case 'error':
+                updateTitle.textContent = 'Error';
+                updateMessage.textContent = data.message || 'An unknown error occurred.';
+                updateCancelBtn.textContent = 'Close';
+                updateCancelBtn.style.display = 'block';
+                break;
+        }
         updateModal.classList.add('active');
     }
 
-    function hideUpdateModal() {
-        updateModal.classList.remove('active');
-    }
+    function hideUpdateModal() { updateModal.classList.remove('active'); }
 
     // --- Update Check Logic ---
     async function checkUpdates() {
-        showUpdateModal('Checking for Updates...', 'Please wait.');
+        showUpdateModal('checking');
 
         const status = await Network.getStatus();
         if (!status.connected) {
-            showUpdateModal('Error', 'No Network Connection.', false, true);
+            showUpdateModal('no_connection');
             return;
         }
 
         try {
             const response = await fetch('https://api.github.com/repos/lezgindurmaz/Alphagame/releases/latest');
+            if (!response.ok) throw new Error(`GitHub API responded with status: ${response.status}`);
             const release = await response.json();
             const latestVersion = release.tag_name.replace('v', '');
 
             if (latestVersion > CURRENT_VERSION) {
-                showUpdateModal('Update Found!', `Downloading v${latestVersion}...`);
                 const apkAsset = release.assets.find(asset => asset.name.endsWith('.apk'));
                 if (!apkAsset) {
-                    showUpdateModal('Error', 'APK file not found in the latest release.', false, true);
+                    showUpdateModal('error', { message: 'APK file not found in the latest release.' });
                     return;
                 }
-
-                const downloadUrl = apkAsset.browser_download_url;
-                const fileName = `Alphagame-v${latestVersion}.apk`;
-
-                const download = await Filesystem.downloadFile({
-                    path: fileName,
-                    url: downloadUrl,
-                    directory: 'DOWNLOADS',
-                });
-
-                showUpdateModal('Download Complete!', 'Opening installer...', false);
-
-                await FileOpener.open({
-                    filePath: download.path,
-                    contentType: 'application/vnd.android.package-archive'
-                });
-                // After opening, hide the modal so the user can see the installer prompt
-                setTimeout(hideUpdateModal, 1000);
-
+                // Store release info for the download button
+                latestReleaseInfo = {
+                    url: apkAsset.browser_download_url,
+                    path: `Alphagame-v${latestVersion}.apk`
+                };
+                showUpdateModal('found', { version: latestVersion, notes: release.body });
             } else {
-                showUpdateModal('No Updates', 'This version is already the latest.', false, true);
+                showUpdateModal('up_to_date');
             }
         } catch (error) {
             console.error('Update check failed:', error);
-            showUpdateModal('Error', 'Update check failed. Please try again later.', false, true);
+            showUpdateModal('error', { message: 'Could not connect to update server.' });
         }
     }
 
+    async function downloadUpdate(url, path) {
+        showUpdateModal('downloading');
+        try {
+            const download = await Filesystem.downloadFile({
+                path: path,
+                url: url,
+                directory: 'DOWNLOADS',
+            });
+            showUpdateModal('complete');
+            await FileOpener.open({
+                filePath: download.path,
+                contentType: 'application/vnd.android.package-archive'
+            });
+            setTimeout(hideUpdateModal, 1000);
+        } catch (error) {
+            console.error('Download failed:', error);
+            showUpdateModal('error', { message: 'Failed to download the update.' });
+        }
+    }
 
     // --- Event Listeners ---
     startGameBtn.addEventListener('click', startGame);
     settingsBtnMain.addEventListener('click', () => showScreen(settingsMenu));
     backBtn.addEventListener('click', () => showScreen(mainMenu));
-    updateCloseBtn.addEventListener('click', hideUpdateModal);
+    updateCancelBtn.addEventListener('click', hideUpdateModal);
 
-
-    musicToggleBtn.addEventListener('click', () => {
-        settings.music = !settings.music;
-        saveSettings();
-        updateSettingsUI();
-        if (settings.music && gameLoopId) { // If in-game, try to play
-            backgroundMusic.play().catch(e => {});
+    // Correctly call downloadUpdate with the stored release info
+    updateDownloadBtn.addEventListener('click', () => {
+        if (latestReleaseInfo.url && latestReleaseInfo.path) {
+            downloadUpdate(latestReleaseInfo.url, latestReleaseInfo.path);
+        } else {
+            // This case should ideally not be hit if the button is only visible when an update is found
+            console.error("Download info is missing.");
+            showUpdateModal('error', { message: 'Could not retrieve download information. Please check again.' });
         }
     });
 
-    sfxToggleBtn.addEventListener('click', () => {
-        settings.sfx = !settings.sfx;
-        saveSettings();
-        updateSettingsUI();
-    });
-
+    musicToggleBtn.addEventListener('click', () => { settings.music = !settings.music; saveSettings(); updateSettingsUI(); });
+    sfxToggleBtn.addEventListener('click', () => { settings.sfx = !settings.sfx; saveSettings(); updateSettingsUI(); });
     checkUpdatesBtn.addEventListener('click', checkUpdates);
 
     // =========================================================================
-    // GAME LOGIC
+    // GAME LOGIC (Restored from previous correct versions)
     // =========================================================================
-     canvas.width = window.innerWidth;
+    canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
     const smallerDimension = Math.min(canvas.width, canvas.height);
     const playerSize = smallerDimension * 0.1;
     const groundHeight = smallerDimension * 0.12;
@@ -168,60 +214,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const gravityValue = smallerDimension * 0.0015;
     const obstacleHeightValue = playerSize;
     const groundY = canvas.height - groundHeight;
-
     const player = { x: 100, y: canvas.height - groundHeight - playerSize, width: playerSize, height: playerSize, velocityX: 0, velocityY: 0, speed: 5, jumpForce: jumpForceValue, isJumping: false };
     const obstacles = [];
     let lastObstacleX = 400;
-    const minObstacleGap = 200;
-    const maxObstacleGap = 500;
-    const minObstacleWidth = 30;
-    const maxObstacleWidth = 80;
+    const minObstacleGap = 200, maxObstacleGap = 500, minObstacleWidth = 30, maxObstacleWidth = 80;
     const obstacleHeight = obstacleHeightValue;
-    let cameraX = 0;
-    let score = 0;
-    let highScore = 0;
+    let cameraX = 0, score = 0, highScore = 0;
 
     function loadHighScore() {
         const savedHighScore = localStorage.getItem('highScore');
         highScore = savedHighScore ? parseInt(savedHighScore, 10) : 0;
         highScoreElement.textContent = 'HIGHSCORE: ' + highScore;
     }
-
-    function saveHighScore() {
-        localStorage.setItem('highScore', highScore);
-    }
-
+    function saveHighScore() { localStorage.setItem('highScore', highScore); }
     let audioCtx;
-    function setupAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-    }
-
+    function setupAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     function playBeep() {
         if (!audioCtx || !settings.sfx) return;
-        // Beep sound generation logic...
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1);
     }
-
     function handleJump() {
         if (!player.isJumping) {
             setupAudio();
-            if (backgroundMusic.paused && settings.music) {
-                backgroundMusic.play().catch(e => {});
-            }
+            if (backgroundMusic.paused && settings.music) backgroundMusic.play().catch(e => {});
             playBeep();
             player.velocityY = -player.jumpForce;
             player.isJumping = true;
         }
     }
-
-    function draw() { /* Drawing logic... */ }
-    function generateObstacles() { /* Obstacle logic... */ }
-    function update() { /* Game update logic... */ }
-    function resetGame() { /* Reset logic... */ }
-
-    // Stubs for brevity, the full logic from previous steps is assumed
-    // This is just to keep the example clean. I will use the full, correct code.
     function draw() {
         cameraX = player.x - canvas.width / 2 + player.width / 2;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -236,14 +264,16 @@ document.addEventListener('DOMContentLoaded', function() {
         while (lastObstacleX < player.x + canvas.width) {
             const gap = Math.random() * (maxObstacleGap - minObstacleGap) + minObstacleGap;
             const width = Math.random() * (maxObstacleWidth - minObstacleWidth) + minObstacleWidth;
-            lastObstacleX += gap;
-            obstacles.push({ x: lastObstacleX, y: groundY - obstacleHeight, width: width, height: obstacleHeight });
-            lastObstacleX += width;
+            const x = lastObstacleX + gap;
+            obstacles.push({ x: x, y: groundY - obstacleHeight, width: width, height: obstacleHeight });
+            lastObstacleX = x + width;
         }
     }
     function update() {
         generateObstacles();
-        obstacles.splice(0, obstacles.findIndex(o => o.x + o.width >= cameraX) || obstacles.length);
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            if (obstacles[i].x + obstacles[i].width < cameraX) obstacles.splice(i, 1);
+        }
         player.velocityX = player.speed;
         player.velocityY += gravityValue;
         player.x += player.velocityX;
@@ -253,24 +283,20 @@ document.addEventListener('DOMContentLoaded', function() {
             player.velocityY = 0;
             player.isJumping = false;
         }
-        obstacles.forEach(obstacle => {
+        for (const obstacle of obstacles) {
             if (player.x < obstacle.x + obstacle.width && player.x + player.width > obstacle.x && player.y + player.height > obstacle.y) {
                  if (player.y < obstacle.y && player.velocityY >= 0) {
                     player.y = obstacle.y - player.height;
                     player.velocityY = 0;
                     player.isJumping = false;
-                 } else {
-                    resetGame();
-                 }
+                 } else { resetGame(); return; }
             }
-        });
+        }
         if (player.y > canvas.height) resetGame();
         const oldScore = score;
         score = Math.floor(player.x / 10);
         scoreElement.textContent = 'SCORE: ' + score;
-        if (Math.floor(score / 300) > Math.floor(oldScore / 300) && player.speed < 10) {
-            player.speed++;
-        }
+        if (Math.floor(score / 300) > Math.floor(oldScore / 300) && player.speed < 10) player.speed++;
     }
      function resetGame() {
         if (score > highScore) {
@@ -288,17 +314,14 @@ document.addEventListener('DOMContentLoaded', function() {
         lastObstacleX = 400;
         scoreElement.textContent = 'SCORE: 0';
     }
-
-
     function gameLoop() {
         update();
         draw();
         gameLoopId = requestAnimationFrame(gameLoop);
     }
-
     function startGame() {
         showScreen(gameScreen);
-        canvas.removeEventListener('click', handleJump); // Remove old listeners
+        canvas.removeEventListener('click', handleJump);
         canvas.addEventListener('click', handleJump);
         resetGame();
         if (gameLoopId) cancelAnimationFrame(gameLoopId);
