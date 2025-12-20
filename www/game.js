@@ -190,4 +190,46 @@ window.addEventListener('load', function() {
 
     // Oyun döngüsünü başlat
     gameLoop();
+
+    // Güncelleme Kontrolü
+    const updateBtn = document.getElementById('update-btn');
+
+    updateBtn.addEventListener('click', () => {
+        console.log('Checking for updates...');
+        alert('Checking for updates...');
+        // GitHub API'den en son sürümü al
+        fetch('https://api.github.com/repos/lezgindurmaz/Alphagame/releases/latest')
+            .then(response => response.json())
+            .then(async (data) => {
+                if (data.assets && data.assets.length > 0) {
+                    const asset = data.assets[0];
+                    const downloadUrl = asset.browser_download_url;
+                    const fileName = asset.name;
+
+                    console.log(`Update found: ${fileName}. Downloading from: ${downloadUrl}`);
+                    alert(`Update found: ${fileName}. Download will start now.`);
+
+                    try {
+                        const { FileTransfer } = Capacitor.Plugins;
+                        const result = await FileTransfer.download({
+                            url: downloadUrl,
+                            // Dosyayı Android'in herkese açık İndirilenler klasörüne kaydet
+                            path: `Download/${fileName}`,
+                        });
+                        console.log('Download complete:', result.path);
+                        alert(`Download complete! You can find the file at: ${result.path}`);
+                    } catch (err) {
+                        console.error('Download failed:', err);
+                        alert('Download failed. Please check the logs for more information.');
+                    }
+                } else {
+                    console.log('No new updates found.');
+                    alert('You are on the latest version.');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking for updates:', error);
+                alert('Error checking for updates. Please check your internet connection and try again.');
+            });
+    });
 });
