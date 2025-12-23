@@ -7,14 +7,42 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
+    <div id="main-menu">
+        <div id="settings-icon">⚙️</div>
+        <h1>RedArea</h1>
+        <button id="start-btn">Start Game</button>
+    </div>
+
+    <div id="settings-menu" class="hidden">
+        <button id="back-btn">←</button>
+        <h2>Settings</h2>
+        <div class="setting-item">
+            <span>Music</span>
+            <label class="switch">
+                <input type="checkbox" id="music-toggle" checked>
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="setting-item">
+            <span>Sound</span>
+            <label class="switch">
+                <input type="checkbox" id="sound-toggle" checked>
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <button id="check-updates-btn">Check For Updates</button>
+        <div id="version">v1.0</div>
+    </div>
+
+    <div id="game-container" class="hidden">
         <canvas id="gameCanvas"></canvas>
-        <div id="controls">
-            <button id="left-btn">Left</button>
-            <button id="right-btn">Right</button>
-            <button id="jump-btn">Jump</button>
+        <div id="ui-container">
+            <div id="score">Score: 0</div>
+            <div id="high-score">High Score: 0</div>
         </div>
     </div>
+
+    <script src="https://sfxr.me/sfxr.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
