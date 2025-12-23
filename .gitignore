@@ -1,2 +1,9 @@
 node_modules/
 android_sdk/
+
+# sensitive files
+*.keystore
+*.properties
+
+# build artifacts
+*.apk
