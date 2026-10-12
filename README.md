@@ -12,7 +12,7 @@ The repository name (`Alphagame`) and the app’s displayed name (`InvisiblePlay
 
 ## Build the Android app
 
-Requirements: Node.js 18 and JDK 17.
+Requirements: Node.js 22 and JDK 17.
 
 ```bash
 npm ci
@@ -22,3 +22,6 @@ cd android
 ```
 
 The APK is produced under `android/app/build/outputs/apk/`. Published builds are listed on the [Releases page](https://github.com/lezgindurmaz/Alphagame/releases).
+
+## Release workflow
+A release build runs only when a `v*` tag is pushed. GitHub Actions uses Node.js 22 and attaches the APK to that same tag; it does not create a tag automatically. Before publishing, check that the tag and Android/package version values are intentionally aligned.
